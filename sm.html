@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Campus Assistant — Malla Reddy Deemed University</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#6ee7b7; --muted:#9aa4b2; --glass: rgba(255,255,255,0.03);
+      --maxw:1000px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071029 0%, #07172b 60%);color:#e6eef6}
+    .app{max-width:var(--maxw);margin:28px auto;padding:18px;display:grid;grid-template-columns:320px 1fr;gap:20px}
+
+    /* Sidebar */
+    .sidebar{background:linear-gradient(180deg,var(--card), #071622);border-radius:14px;padding:18px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#4ade80);display:flex;align-items:center;justify-content:center;font-weight:700;color:#042022}
+    .title{font-weight:600}
+    .subtitle{font-size:12px;color:var(--muted)}
+    .quick{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+    .chip{background:var(--glass);padding:10px;border-radius:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.03);font-size:14px}
+    .chip:hover{transform:translateY(-2px)}
+    .search{margin-top:14px}
+    .search input{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .info{margin-top:14px;font-size:13px;color:var(--muted);line-height:1.4}
+
+    /* Chat area */
+    .chatcard{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);border-radius:14px;padding:16px;display:flex;flex-direction:column;height:78vh;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    .messages{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:12px}
+    .msg{max-width:78%;padding:12px;border-radius:12px;line-height:1.4}
+    .user{align-self:flex-end;background:linear-gradient(180deg,#1f2937,#111827);border:1px solid rgba(255,255,255,0.03);}
+    .bot{align-self:flex-start;background:linear-gradient(180deg,#041426,#062233);border:1px solid rgba(255,255,255,0.04)}
+    .meta{font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* Composer */
+    .composer{display:flex;gap:10px;padding-top:10px;align-items:center}
+    .input{flex:1;display:flex;gap:8px}
+    .input input{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .btn{padding:10px 14px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(90deg,var(--accent),#34d399);color:#042022;font-weight:600}
+    .btn:active{transform:translateY(1px)}
+
+    /* suggestions */
+    .suggests{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .sug{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:999px;font-size:13px;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+
+    /* small screens */
+    @media (max-width:880px){.app{grid-template-columns:1fr;padding:12px}.sidebar{order:2}.chatcard{order:1;height:70vh}}
+
+    /* loading dot */
+    .loader{display:inline-block;height:14px}
+    .loader span{display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;background:var(--muted);opacity:0.4;animation:blink 1s infinite}
+    .loader span:nth-child(2){animation-delay:.15s}
+    .loader span:nth-child(3){animation-delay:.3s}
+    @keyframes blink{0%{opacity:0.2}50%{opacity:1}100%{opacity:0.2}}
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Smart Campus Assistant">
+    <aside class="sidebar" aria-label="sidebar">
+      <div class="brand">
+        <div class="logo">MR</div>
+        <div>
+          <div class="title">Smart Campus Assistant</div>
+          <div class="subtitle">Malla Reddy Deemed University</div>
+        </div>
+      </div>
+
+      <div class="search">
+        <input id="kbSearch" placeholder="Search campus topics (e.g., library hours)" aria-label="search" />
+      </div>
+
+      <div class="quick" aria-hidden="false">
+        <div class="chip" data-suggest="show schedules">Schedules & Timetable</div>
+        <div class="chip" data-suggest="dining options today">Dining & Menus</div>
+        <div class="chip" data-suggest="library services and hours">Library Services</div>
+        <div class="chip" data-suggest="book a lab or facilities">Facilities & Rooms</div>
+        <div class="chip" data-suggest="how to apply for transcripts">Administrative Procedures</div>
+      </div>
+
+      <div class="info">
+        <strong>Features</strong>
+        <ul>
+          <li>Conversational AI — plug your model at <code>/api/chat</code></li>
+          <li>Local campus database for fast replies</li>
+          <li>Searchable topics & quick actions</li>
+        </ul>
+      </div>
+    </aside>
+
+    <main class="chatcard">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>Ask me about schedules, dining, library, facilities and admin</strong>
+          <div style="font-size:13px;color:var(--muted)">Try: "When is the library open today?" or "Show today's mess menu"</div>
+        </div>
+        <div style="font-size:13px;color:var(--muted)">Demo Mode</div>
+      </div>
+
+      <div id="messages" class="messages" role="log" aria-live="polite"></div>
+
+      <div class="suggests" id="suggests" aria-hidden="false">
+        <div class="sug">Library hours</div>
+        <div class="sug">Today's menu</div>
+        <div class="sug">Exam timetable</div>
+        <div class="sug">Hostel rules</div>
+      </div>
+
+      <div class="composer" role="region" aria-label="message composer">
+        <div class="input">
+          <input id="userInput" placeholder="Type your question..." aria-label="message input" />
+        </div>
+        <button id="sendBtn" class="btn" aria-label="send">Send</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /*********************************************************
+     * Smart Campus Assistant - Single-file front-end demo
+     * - Lightweight rule-based campus DB (mock)
+     * - Suggestion buttons and keyword routing
+     * - Placeholder hook to connect a real conversational AI at /api/chat
+     * - Author: Generated for Malla Reddy Deemed University
+     *********************************************************/
+
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const suggests = document.getElementById('suggests');
+
+    // Mock campus database: design this as the authoritative campus DB.
+    // In production, replace with a backend DB (Postgres / Mongo) and an API endpoint like /api/db/query
+    const campusDB = {
+      library: {
+        hours: 'Mon-Fri: 8:30 AM - 9:00 PM; Sat: 9:00 AM - 5:00 PM; Sun: Closed',
+        services: ['Borrowing', 'Reference Services', 'Interlibrary Loan', 'Study Rooms', 'Digital Repository'],
+        contact: 'library@mallareddy.ac.in | +91-40-1234-5678'
+      },
+      dining: {
+        todayMenu: Breakfast: Idli, Upma\nLunch: Sambar Rice, Veg Curry, Salad\nDinner: Chapati, Paneer Butter Masala, Rice,
+        messTimings: 'Breakfast 7:30-9:00, Lunch 12:30-2:00, Dinner 7:00-8:30'
+      },
+      schedules: {
+        nextExams: 'Semester exams start on 2025-11-03. Check the academic office for department-specific timetables.',
+        academicCalendar: 'Semester 1: Jul-Nov, Semester 2: Jan-May'
+      },
+      facilities: {
+        labs: ['Computer Lab A (CSE)', 'Electronics Lab (ECE)', 'Civil Lab'],
+        sports: ['Cricket Ground', 'Badminton Courts', 'Gymnasium'],
+        booking: 'Use the Facilities portal /facility-booking or email facilities@mallareddy.ac.in'
+      },
+      admin: {
+        transcripts: 'Apply online at the registrar portal. Fee: Rs. 500 (normal) / Rs. 1000 (urgent).',
+        idCard: 'Visit admin block with a passport photo and fee receipt to request a replacement ID.'
+      }
+    };
+
+    // Utility: add message bubble
+    function addMessage(text, sender='bot', meta=''){
+      if (text === undefined || text === null) text = '';
+      if (meta === undefined || meta === null) meta = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'msg ' + (sender === 'user' ? 'user' : 'bot');
+      wrap.innerHTML = `<div>${escapeHtml(String(text)).replace(/\n/g,'<br/>')}</div>${meta ? <div class="meta">${escapeHtml(String(meta))}</div> : ''}`;
+      messagesEl.appendChild(wrap);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Basic sanitizer
+    function escapeHtml(unsafe){
+      return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // Simple keyword-based router that consults the campusDB first, then falls back to AI endpoint.
+    async function handleQuery(text){
+      if (!text) return {reply: "I didn't receive a question.", source: 'none'};
+      const t = text.toLowerCase();
+      // direct DB answers (fast)
+      if(t.includes('library')){
+        return {reply: Library hours: ${campusDB.library.hours}\nServices: ${campusDB.library.services.join(', ')}\nContact: ${campusDB.library.contact}, source: 'campus-db'};
+      }
+      if(t.includes('menu') || t.includes('dining') || t.includes('mess')){
+        return {reply: Today's Menu:\n${campusDB.dining.todayMenu}\n\nMess Timings: ${campusDB.dining.messTimings}, source: 'campus-db'};
+      }
+      if(t.includes('schedule') || t.includes('timetable') || t.includes('exam')){
+        return {reply: Academic calendar: ${campusDB.schedules.academicCalendar}\nNote: ${campusDB.schedules.nextExams}, source: 'campus-db'};
+      }
+      if(t.includes('facility') || t.includes('labs') || t.includes('book')){
+        return {reply: Facilities:\nLabs: ${campusDB.facilities.labs.join(', ')}\nSports: ${campusDB.facilities.sports.join(', ')}\nBooking: ${campusDB.facilities.booking}, source: 'campus-db'};
+      }
+      if(t.includes('transcript') || t.includes('id card') || t.includes('administrative')){
+        return {reply: Administrative Procedures:\nTranscripts: ${campusDB.admin.transcripts}\nID: ${campusDB.admin.idCard}, source: 'campus-db'};
+      }
+
+      // if nothing matched, query external conversational AI (placeholder)
+      try{
+        // show typing indicator
+        showTyping();
+        // In production, replace /api/chat with your backend endpoint that calls your chosen LLM
+        const resp = await fetch('/api/chat', {
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({message: text, university: 'Malla Reddy Deemed University'})
+        });
+        if(!resp.ok) throw new Error('AI endpoint error');
+        const data = await resp.json();
+        hideTyping();
+        return {reply: data.reply || 'Sorry, I could not find that. Try asking about schedules or library hours.', source: 'ai'};
+      }catch(err){
+        hideTyping();
+        // graceful fallback
+        return {reply: "I couldn't reach the AI service. Here's an offline suggestion: try asking 'library hours' or 'today's menu'.", source: 'fallback'};
+      }
+    }
+
+    // UI helpers for typing indicator
+    let typingEl = null;
+    function showTyping(){
+      if(typingEl) return;
+      typingEl = document.createElement('div');
+      typingEl.className = 'msg bot';
+      typingEl.innerHTML = <div class="loader"><span></span><span></span><span></span></div>;
+      messagesEl.appendChild(typingEl);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    function hideTyping(){ if(typingEl){typingEl.remove(); typingEl=null;} }
+
+    // Event: send message
+    async function send(){
+      try{
+        const text = inputEl.value.trim(); if(!text) return;
+        addMessage(text,'user');
+        inputEl.value='';
+        const res = await handleQuery(text);
+        addMessage(res.reply,'bot', Source: ${res.source});
+      }catch(e){
+        console.error(e);
+        addMessage('An error occurred while processing your request.','bot','Source: client-error');
+      }
+    }
+
+    sendBtn.addEventListener('click', send);
+    inputEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') send(); });
+
+    // suggestion buttons
+    document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click', ()=>{ inputEl.value = c.dataset.suggest; inputEl.focus(); }));
+    document.querySelectorAll('.sug').forEach(s=>s.addEventListener('click', ()=>{ inputEl.value = s.textContent; inputEl.focus(); }));
+
+    // search in sidebar to surface DB hints
+    document.getElementById('kbSearch').addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){
+        inputEl.value = e.target.value; send();
+      }
+    });
+
+    // initial welcome
+    addMessage('Hello! I am the Smart Campus Assistant for Malla Reddy Deemed University. Ask me about library hours, dining, schedules, facilities, or admin procedures.','bot','Source: campus-db');
+
+    // NOTE (Backend integration instructions):
+    // 1) /api/chat - POST {message, university, userId?} -> returns {reply: string}
+    //    - This endpoint should call your chosen LLM provider (OpenAI, Anthropic, local LLaMA, etc.) and can be fine-tuned or prompt-engineered with campus data.
+    // 2) /api/db/query - create endpoints to read/write the campus database (schedules, menus, contacts). Use authentication for admin operations.
+    // 3) For production: add user auth (SSO with campus credentials), rate limiting, logging, and privacy controls before connecting to a live LLM.
+
+  </script>
+</body>
+</html>
